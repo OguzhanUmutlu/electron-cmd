@@ -1,0 +1,65 @@
+<title>cmd</title>
+<div class="cmd"></div>
+<script>
+    window.cmd = window.cmd || {};
+    const container = document.querySelector(".cmd");
+    let string = "";
+    const addString = str => {
+        string += str;
+        container.scrollTop = container.scrollHeight;
+    };
+    let prompt = "";
+    let promptOn = true;
+    const animate = () => {
+        container.innerHTML = string.replaceAll("\n", "<br>") + prompt.replaceAll("\n", "<br>") + (promptOn && Date.now() % 600 < 300 ? "<span class='cursor'></span>" : "")
+        requestAnimationFrame(animate);
+    };
+    animate();
+    const keys = {};
+    addEventListener("keydown", ev => {
+        const K = ev.key.toLowerCase();
+        const hasJustPressed = !keys[K];
+        keys[K] = true;
+        if (!promptOn) return;
+        switch (ev.key) {
+            case "Control":
+                break;
+            case "Backspace":
+                prompt = prompt.substring(0, prompt.length - 1);
+                break;
+            case "Enter":
+                string += prompt + "\n";
+                cmd.run(prompt).then(() => promptOn = true);
+                prompt = "";
+                promptOn = false;
+                break;
+            default:
+                if (ev.key.length === 1 && !keys["control"]) prompt += ev.key;
+                if (keys["control"] && hasJustPressed && K === "c") cmd.controlC();
+        }
+    });
+    addEventListener("keyup", ev => {
+        keys[ev.key.toLowerCase()] = false;
+    });
+    const fetchMessages = async () => {
+        const str = await cmd.cacheString();
+        string += str;
+        await new Promise(r => setTimeout(r, 50));
+        await fetchMessages();
+    };
+    setTimeout(fetchMessages, 1000);
+</script>
+<style>
+    body {
+        background: #36393F;
+        color: white;
+        font-family: monospace, serif;
+    }
+
+    .cursor {
+        position: absolute;
+        width: 10px;
+        height: 20px;
+        background: white;
+    }
+</style>
